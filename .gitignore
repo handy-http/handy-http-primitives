@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/handy-http-primitives
+handy-http-primitives.so
+handy-http-primitives.dylib
+handy-http-primitives.dll
+handy-http-primitives.a
+handy-http-primitives.lib
+handy-http-primitives-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst

@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"Andrew Lalis"
+	],
+	"copyright": "Copyright © 2024, Andrew Lalis",
+	"dependencies": {
+		"streams": "~>3.5.0"
+	},
+	"description": "Basic HTTP types that can be shared among various projects.",
+	"license": "MIT",
+	"name": "handy-http-primitives"
+}
