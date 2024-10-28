@@ -12,7 +12,7 @@ import handy_http_primitives.optional;
  */
 struct ServerHttpRequest {
     /// The HTTP version of the request.
-    const HttpVersion httpVersion = HttpVersion.V1_1;
+    const HttpVersion httpVersion = HttpVersion.V1;
     /// The remote address of the client that sent this request.
     const InternetAddress clientAddress;
     /// The HTTP verb used in the request.
@@ -28,12 +28,14 @@ struct ServerHttpRequest {
 }
 
 /**
- * Enumeration of all possible HTTP request versions, as an unsigned byte for
- * efficient storage.
+ * Enumeration of all possible HTTP request versions.
  */
 public enum HttpVersion : ubyte {
-    V1_1    = 1 << 1,
+    /// HTTP Version 1, including versions 0.9, 1.0, and 1.1.
+    V1      = 1 << 1,
+    /// HTTP Version 2.
     V2      = 1 << 2,
+    /// HTTP Version 3.
     V3      = 1 << 3
 }
 
@@ -74,13 +76,12 @@ Optional!HttpMethod parseHttpMethod(S)(S s) if (isSomeString!S) {
 }
 
 unittest {
-    alias R = Optional!HttpMethod;
-    assert(parseHttpMethod("GET") == R.of(HttpMethod.GET));
-    assert(parseHttpMethod("get") == R.of(HttpMethod.GET));
-    assert(parseHttpMethod("  geT ") == R.of(HttpMethod.GET));
-    assert(parseHttpMethod("PATCH") == R.of(HttpMethod.PATCH));
-    assert(parseHttpMethod(" not a method!") == R.empty);
-    assert(parseHttpMethod("") == R.empty);
+    assert(parseHttpMethod("GET") == Optional!HttpMethod.of(HttpMethod.GET));
+    assert(parseHttpMethod("get") == Optional!HttpMethod.of(HttpMethod.GET));
+    assert(parseHttpMethod("  geT ") == Optional!HttpMethod.of(HttpMethod.GET));
+    assert(parseHttpMethod("PATCH") == Optional!HttpMethod.of(HttpMethod.PATCH));
+    assert(parseHttpMethod(" not a method!") == Optional!HttpMethod.empty);
+    assert(parseHttpMethod("") == Optional!HttpMethod.empty);
 }
 
 /// The data representing a remote IPv4 internet address, available as an int or bytes.
