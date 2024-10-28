@@ -21,8 +21,6 @@ struct ServerHttpRequest {
     const string url = "";
     /// A case-insensitive map of all request headers.
     const(CaseInsensitiveStringMultiValueMap) headers;
-    /// A case-sensitive map of all URL query parameters.
-    const(StringMultiValueMap) queryParams;
     /// The underlying stream used to read the body from the request.
     InputStream!ubyte inputStream;
 }
@@ -105,4 +103,107 @@ struct InternetAddress {
         IPv4InternetAddress ipv4Address;
         IPv6InternetAddress ipv6Address;
     }
+}
+
+/// Stores a single query parameter's key and values.
+struct QueryParameter {
+    string key;
+    string[] values;
+}
+
+/**
+ * Parses a list of query parameters from a URL.
+ * Params:
+ *   url = The URL to parse query parameters from.
+ * Returns: The list of query parameters.
+ */
+QueryParameter[] parseQueryParameters(string url) {
+    if (url is null || url.length == 0) {
+        return [];
+    }
+    ptrdiff_t paramsStartIdx = url.indexOf('?');
+    if (paramsStartIdx == -1 || paramsStartIdx + 1 >= url.length) return [];
+
+    string paramsStr = url[paramsStartIdx + 1 .. $];
+    QueryParameter[] params;
+    size_t idx = 0;
+    while (idx < paramsStr.length) {
+        // First, isolate the text up to the next '&' separator.
+        ptrdiff_t nextParamIdx = paramsStr.indexOf('&', idx);
+        size_t currentParamEndIdx = nextParamIdx == -1 ? paramsStr.length : nextParamIdx;
+        string currentParamStr = paramsStr[idx .. currentParamEndIdx];
+        // Then, look for an '=' to separate the parameter's key and value.
+        ptrdiff_t currentParamEqualsIdx = currentParamStr.indexOf('=');
+        string key;
+        string val;
+        if (currentParamEqualsIdx == -1) {
+            // No '=' is present, so we have a key with an empty value.
+            key = currentParamStr;
+            val = "";
+        } else if (currentParamEqualsIdx == 0) {
+            // The '=' is the first character, so the key is empty.
+            key = "";
+            val = currentParamStr[1 .. $];
+        } else {
+            // There is a legitimate key and value.
+            key = currentParamStr[0 .. currentParamEqualsIdx];
+            val = currentParamStr[currentParamEqualsIdx + 1 .. $];
+        }
+        // Clean up URI-encoded characters. TODO: do this without using std lib GC methods?
+        import std.uri : decodeComponent;
+        import std.string : replace;
+        key = key.replace("+", " ").decodeComponent();
+        val = val.replace("+", " ").decodeComponent();
+
+        // If the key already exists, insert the value into that array.
+        bool keyExists = false;
+        foreach (ref param; params) {
+            if (param.key == key) {
+                param.values ~= val;
+                keyExists = true;
+                break;
+            }
+        }
+        // Otherwise, add a new query parameter.
+        if (!keyExists) {
+            params ~= QueryParameter(key, [val]);
+        }
+        // Advance our current index pointer to the start of the next query parameter.
+        // (past the '&' character separating query parameters)
+        idx = currentParamEndIdx + 1;
+    }
+
+    return params;
+}
+
+unittest {
+    QueryParameter[] r;
+    // Test a basic common example.
+    r = parseQueryParameters("https://www.example.com?a=1&b=2&c=3");
+    assert(r == [QueryParameter("a", ["1"]), QueryParameter("b", ["2"]), QueryParameter("c", ["3"])]);
+    // Test parsing multiple values for a single key.
+    r = parseQueryParameters("test?key=a&key=b&key=abc");
+    assert(r == [QueryParameter("key", ["a", "b", "abc"])]);
+    // Test URLs without any parameters.
+    assert(parseQueryParameters("test").length == 0);
+    assert(parseQueryParameters("test?").length == 0);
+    // Test parameter with any values.
+    assert(parseQueryParameters("test?test") == [QueryParameter("test", [""])]);
+    // Test parameter without a name.
+    assert(parseQueryParameters("test?=value") == [QueryParameter("", ["value"])]);
+}
+
+/**
+ * Internal helper function to get the first index of a character in a string.
+ * Params:
+ *   s = The string to look in.
+ *   c = The character to look for.
+ *   offset = An optional offset to look from.
+ * Returns: The index of the character, or -1.
+ */
+private ptrdiff_t indexOf(string s, char c, size_t offset = 0) {
+    for (size_t i = offset; i < s.length; i++) {
+        if (s[i] == c) return i;
+    }
+    return -1;
 }
