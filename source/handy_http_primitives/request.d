@@ -1,10 +1,11 @@
 module handy_http_primitives.request;
 
 import streams : InputStream;
-import std.traits : isSomeString, EnumMembers;
+import std.traits : EnumMembers;
 
 import handy_http_primitives.multivalue_map;
 import handy_http_primitives.optional;
+import handy_http_primitives.address;
 
 /**
  * The HTTP request struct which represents the content of an HTTP request as
@@ -14,7 +15,7 @@ struct ServerHttpRequest {
     /// The HTTP version of the request.
     const HttpVersion httpVersion = HttpVersion.V1;
     /// The remote address of the client that sent this request.
-    const InternetAddress clientAddress;
+    const ClientAddress clientAddress;
     /// The HTTP verb used in the request.
     const string method = HttpMethod.GET;
     /// The URL that was requested.
@@ -60,7 +61,8 @@ public enum HttpMethod : string {
  *   s = The string to parse.
  * Returns: An optional which may contain an HttpMethod, if one was parsed.
  */
-Optional!HttpMethod parseHttpMethod(S)(S s) if (isSomeString!S) {
+Optional!HttpMethod parseHttpMethod(string s) {
+    // TODO: Remove this function now that we're using plain string HTTP methods.
     import std.uni : toUpper;
     import std.string : strip;
     static foreach (m; EnumMembers!HttpMethod) {
@@ -80,29 +82,6 @@ unittest {
     assert(parseHttpMethod("PATCH") == Optional!HttpMethod.of(HttpMethod.PATCH));
     assert(parseHttpMethod(" not a method!") == Optional!HttpMethod.empty);
     assert(parseHttpMethod("") == Optional!HttpMethod.empty);
-}
-
-/// The data representing a remote IPv4 internet address, available as an int or bytes.
-union IPv4InternetAddress {
-    const uint intValue;
-    const ubyte[4] bytes;
-}
-
-/// The data representing a remote IPv6 internet address.
-struct IPv6InternetAddress {
-    const ubyte[16] bytes;
-}
-
-/// A remote internet address, which is either IPv4 or IPv6. Check `isIPv6`.
-struct InternetAddress {
-    /// True if this address is IPv6. False if this is an IPv4 address.
-    const bool isIPv6;
-    /// The port number assigned to the connecting client on this machine.
-    const ushort port;
-    union {
-        IPv4InternetAddress ipv4Address;
-        IPv6InternetAddress ipv6Address;
-    }
 }
 
 /// Stores a single query parameter's key and values.
@@ -149,7 +128,8 @@ QueryParameter[] parseQueryParameters(string url) {
             key = currentParamStr[0 .. currentParamEqualsIdx];
             val = currentParamStr[currentParamEqualsIdx + 1 .. $];
         }
-        // Clean up URI-encoded characters. TODO: do this without using std lib GC methods?
+        // Clean up URI-encoded characters.
+        // TODO: Do this without using std lib GC methods?
         import std.uri : decodeComponent;
         import std.string : replace;
         key = key.replace("+", " ").decodeComponent();

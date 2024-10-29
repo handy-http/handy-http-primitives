@@ -4,8 +4,6 @@
  */
 module handy_http_primitives.optional;
 
-import std.typecons : Nullable;
-
 /**
  * A simple wrapper around a value to make it optionally present.
  */
@@ -27,34 +25,11 @@ struct Optional(T) {
     }
 
     /**
-     * Constructs an optional value using a Phobos nullable.
-     * Params:
-     *   nullableValue = The nullable value to use.
-     * Returns: An optional that contains the given nullable value.
-     */
-    static Optional!T of (Nullable!T nullableValue) {
-        if (nullableValue.isNull) return Optional!T.empty();
-        return Optional!T.of(nullableValue.get);
-    }
-
-    /**
      * Constructs an optional that's empty.
      * Returns: An optional that is empty.
      */
     static Optional!T empty() {
         return Optional!T(T.init, true);
-    }
-
-    /**
-     * Converts this optional to a Phobos-style Nullable.
-     * Returns: A `Nullable!T` representing this optional.
-     */
-    Nullable!T asNullable() {
-        Nullable!T n;
-        if (!this.isNull) {
-            n = this.value;
-        }
-        return n;
     }
 
     /**
