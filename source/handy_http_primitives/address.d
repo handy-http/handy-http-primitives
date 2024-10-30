@@ -3,6 +3,10 @@
  */
 module handy_http_primitives.address;
 
+/**
+ * Represents a 4-byte IPv4 network address and the port number on this machine
+ * that the connection was assigned to.
+ */
 struct IPv4InternetAddress {
     const ubyte[4] bytes;
     const ushort port;
@@ -20,6 +24,10 @@ struct IPv4InternetAddress {
     }
 }
 
+/**
+ * Represents a 16-byte IPv6 network address and the port number on this
+ * machine that the connection was assigned to.
+ */
 struct IPv6InternetAddress {
     const ubyte[16] bytes;
     const ushort port;
@@ -29,6 +37,10 @@ struct IPv6InternetAddress {
     }
 }
 
+/**
+ * Represents a unix socket address, which is just a path to a file at which
+ * IO operations take place.
+ */
 struct UnixSocketAddress {
     const string path;
 
@@ -37,12 +49,17 @@ struct UnixSocketAddress {
     }
 }
 
+/// Defines the different possible address types, used by `ClientAddress`.
 enum ClientAddressType {
     IPv4,
     IPv6,
     UNIX
 }
 
+/**
+ * A compound type representing the address of any entity sending an HTTP
+ * request. Use `type` to determine which information is available.
+ */
 struct ClientAddress {
     const ClientAddressType type;
     const IPv4InternetAddress ipv4InternetAddress;
