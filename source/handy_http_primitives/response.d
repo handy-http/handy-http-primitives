@@ -21,8 +21,8 @@ struct ServerHttpResponse {
  * A struct containing basic information about a response status.
  */
 struct StatusInfo {
-    const ushort code;
-    const string text;
+    ushort code;
+    string text;
 }
 
 /** 
@@ -100,4 +100,14 @@ enum HttpStatus : StatusInfo {
     LOOP_DETECTED                   = StatusInfo(508, "Loop Detected"),
     NOT_EXTENDED                    = StatusInfo(510, "Not Extended"),
     NETWORK_AUTHENTICATION_REQUIRED = StatusInfo(511, "Network Authentication Required")
+}
+
+/// Common "Content-Type" header values.
+enum ContentTypes : string {
+    APPLICATION_JSON                = "application/json",
+    APPLICATION_XML                 = "application/xml",
+
+    TEXT_PLAIN                      = "text/plain",
+    TEXT_HTML                       = "text/html",
+    TEXT_CSS                        = "text/css"
 }

@@ -10,18 +10,6 @@ module handy_http_primitives.address;
 struct IPv4InternetAddress {
     const ubyte[4] bytes;
     const ushort port;
-
-    string toString() const {
-        char[21] buffer;
-        size_t idx;
-        for (size_t i = 0; i < 4; i++) {
-            writeUIntToBuffer(bytes[i], buffer, idx);
-            if (i < 3) buffer[idx++] = '.';
-        }
-        buffer[idx++] = ':';
-        writeUIntToBuffer(port, buffer, idx);
-        return buffer[0 .. idx].idup;
-    }
 }
 
 /**
@@ -31,10 +19,6 @@ struct IPv4InternetAddress {
 struct IPv6InternetAddress {
     const ubyte[16] bytes;
     const ushort port;
-
-    string toString() const {
-        return "Not implemented!";
-    }
 }
 
 /**
@@ -43,10 +27,6 @@ struct IPv6InternetAddress {
  */
 struct UnixSocketAddress {
     const string path;
-
-    string toString() const {
-        return path;
-    }
 }
 
 /// Defines the different possible address types, used by `ClientAddress`.
@@ -66,14 +46,33 @@ struct ClientAddress {
     const IPv6InternetAddress ipv6InternetAddress;
     const UnixSocketAddress unixSocketAddress;
 
+    /**
+     * Serializes this address in a human-readable string representation.
+     * Returns: The string representation of this address.
+     */
     string toString() const {
-        if (type == ClientAddressType.IPv4) {
-            return ipv4InternetAddress.toString();
-        } else if (type == ClientAddressType.IPv6) {
-            return ipv6InternetAddress.toString();
-        } else {
-            return unixSocketAddress.toString();
+        if (type == ClientAddressType.UNIX) return unixSocketAddress.path;
+        version (Posix) { import core.sys.posix.arpa.inet : inet_ntop, AF_INET, AF_INET6; }
+        version (Windows) { import core.sys.windows.winsock2 : inet_ntop, AF_INET, AF_INET6; }
+        const int addressFamily = type == ClientAddressType.IPv4
+            ? AF_INET
+            :AF_INET6;
+        const scope void* inputBytes = type == ClientAddressType.IPv4
+            ? ipv4InternetAddress.bytes.ptr
+            : ipv6InternetAddress.bytes.ptr;
+        const ushort port = type == ClientAddressType.IPv4
+            ? ipv4InternetAddress.port
+            : ipv6InternetAddress.port;
+        char[45] buf; // Buffer is sized to maximum possible IPv6 length (39 chars), plus 6 chars for port string.
+        auto ret = inet_ntop(addressFamily, inputBytes, buf.ptr, buf.length);
+        if (ret is null) {
+            throw new Exception("Failed to serialize address.");
         }
+        size_t strLength = 0;
+        while (buf[strLength] != '\0') strLength++;
+        buf[strLength++] = ':';
+        writeUIntToBuffer(port, buf, strLength);
+        return buf[0..strLength].idup;
     }
 
     static ClientAddress ofIPv4(IPv4InternetAddress addr) {
@@ -92,6 +91,12 @@ struct ClientAddress {
 unittest {
     ClientAddress addr = ClientAddress.ofIPv4(IPv4InternetAddress([127, 0, 0, 1], 8000));
     assert(addr.toString == "127.0.0.1:8000");
+    ClientAddress addr6 = ClientAddress.ofIPv6(IPv6InternetAddress(
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        8000
+    ));
+    assert(addr6.toString == ":::8000");
+    // TODO: Add more comprehensive testing.
 }
 
 /**

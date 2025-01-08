@@ -3,7 +3,6 @@ module handy_http_primitives.request;
 import streams : InputStream;
 import std.traits : EnumMembers;
 
-import handy_http_primitives.multivalue_map;
 import handy_http_primitives.optional;
 import handy_http_primitives.address;
 
@@ -21,7 +20,7 @@ struct ServerHttpRequest {
     /// The URL that was requested.
     const string url = "";
     /// A case-insensitive map of all request headers.
-    const(CaseInsensitiveStringMultiValueMap) headers;
+    const(string[][string]) headers;
     /// The underlying stream used to read the body from the request.
     InputStream!ubyte inputStream;
 }

@@ -7,6 +7,6 @@
 		"streams": "~>3.5.0"
 	},
 	"description": "Basic HTTP types that can be shared among various projects.",
-	"license": "MIT",
+	"license": "CC0",
 	"name": "handy-http-primitives"
 }

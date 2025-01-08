@@ -14,3 +14,4 @@ handy-http-primitives-test-*
 *.o
 *.obj
 *.lst
+*.a
