@@ -33,7 +33,8 @@ struct UnixSocketAddress {
 enum ClientAddressType {
     IPv4,
     IPv6,
-    UNIX
+    UNIX,
+    UNKNOWN
 }
 
 /**
@@ -51,6 +52,7 @@ struct ClientAddress {
      * Returns: The string representation of this address.
      */
     string toString() const {
+        if (type == ClientAddressType.UNKNOWN) return "Unknown Address";
         if (type == ClientAddressType.UNIX) return unixSocketAddress.path;
         version (Posix) { import core.sys.posix.arpa.inet : inet_ntop, AF_INET, AF_INET6; }
         version (Windows) { import core.sys.windows.winsock2 : inet_ntop, AF_INET, AF_INET6; }
@@ -85,6 +87,15 @@ struct ClientAddress {
 
     static ClientAddress ofUnixSocket(UnixSocketAddress addr) {
         return ClientAddress(ClientAddressType.UNIX, IPv4InternetAddress.init, IPv6InternetAddress.init, addr);
+    }
+
+    static ClientAddress unknown() {
+        return ClientAddress(
+            ClientAddressType.UNKNOWN,
+            IPv4InternetAddress.init,
+            IPv6InternetAddress.init,
+            UnixSocketAddress.init
+        );
     }
 }
 
