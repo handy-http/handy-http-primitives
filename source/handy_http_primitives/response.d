@@ -1,6 +1,6 @@
 module handy_http_primitives.response;
 
-import streams;
+import streams : OutputStream;
 
 import handy_http_primitives.multivalue_map;
 

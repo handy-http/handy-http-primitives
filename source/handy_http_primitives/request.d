@@ -170,6 +170,11 @@ unittest {
     assert(parseQueryParameters("test?test") == [QueryParameter("test", [""])]);
     // Test parameter without a name.
     assert(parseQueryParameters("test?=value") == [QueryParameter("", ["value"])]);
+    // Test URI-encoded parameter value.
+    assert(parseQueryParameters(
+        "test?key=this%20is%20a%20long%20sentence%21%28test%29") ==
+        [QueryParameter("key", ["this is a long sentence!(test)"])]
+    );
 }
 
 /**
@@ -185,4 +190,12 @@ private ptrdiff_t indexOf(string s, char c, size_t offset = 0) {
         if (s[i] == c) return i;
     }
     return -1;
+}
+
+unittest {
+    assert(indexOf("test", 't', 0) == 0);
+    assert(indexOf("test", 't', 1) == 3);
+    assert(indexOf("", 't', 0) == -1);
+    assert(indexOf("test", 't', 100) == -1);
+    assert(indexOf("test", 'a', 0) == -1);
 }
