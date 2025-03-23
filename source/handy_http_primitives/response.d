@@ -111,3 +111,25 @@ enum ContentTypes : string {
     TEXT_HTML                       = "text/html",
     TEXT_CSS                        = "text/css"
 }
+
+/**
+ * An exception that can be thrown while handling an HTTP request, to indicate
+ * that the server should return a specified response code, usually when you
+ * want to short-circuit due to an error.
+ */
+class HttpStatusException : Exception {
+    const StatusInfo status;
+
+    this(StatusInfo status, string message, Throwable next) {
+        super(message, next);
+        this.status = status;
+    }
+
+    this(StatusInfo status, string message) {
+        this(status, message, null);
+    }
+
+    this(StatusInfo status) {
+        this(status, "An error occurred while processing the request.", null);
+    }
+}
