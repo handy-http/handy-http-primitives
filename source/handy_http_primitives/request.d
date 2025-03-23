@@ -119,6 +119,10 @@ struct ServerHttpRequest {
             }
             bytesRead += writeResult.count;
         }
+        // If a content-length was provided, but we didn't read as many bytes as specified, return an error.
+        if (contentLength > 0 && bytesRead < contentLength) {
+            return StreamResult(StreamError("Failed to read body according to provided Content-Length.", 1));
+        }
 
         return StreamResult(cast(uint) bytesRead);
     }
@@ -147,6 +151,110 @@ struct ServerHttpRequest {
     string readBodyAsString(bool allowInfiniteRead = false) {
         return cast(string) readBodyAsBytes(allowInfiniteRead);
     }
+}
+
+// Test getHeaderAs
+unittest {
+    InputStream!ubyte noOpInputStream = inputStreamObjectFor(arrayInputStreamFor!ubyte([]));
+    ServerHttpRequest r1 = ServerHttpRequest(
+        HttpVersion.V1,
+        ClientAddress.unknown,
+        HttpMethod.GET,
+        "/test",
+        ["Content-Type": ["application/json"], "Test": ["123", "456"]],
+        [],
+        noOpInputStream
+    );
+    assert(r1.getHeaderAs!string("Content-Type") == "application/json");
+    assert(r1.getHeaderAs!string("content-type") == ""); // Case sensitivity.
+    assert(r1.getHeaderAs!int("Content-Type") == 0);
+    assert(r1.getHeaderAs!int("Test") == 123); // Check that we get the first header value.
+    assert(r1.getHeaderAs!string("Test") == "123");
+}
+
+// Test readBody
+unittest {
+    ServerHttpRequest makeSampleRequest(S)(string[][string] headers, S inputStream) if (isByteInputStream!S) {
+        return ServerHttpRequest(
+            HttpVersion.V1,
+            ClientAddress.unknown,
+            HttpMethod.POST,
+            "/test",
+            headers,
+            [],
+            inputStreamObjectFor(inputStream)
+        );
+    }
+
+    auto sOut = byteArrayOutputStream();
+
+    // Base scenario with provided content length and correct values.
+    auto r1 = makeSampleRequest(["Content-Length": ["5"]], arrayInputStreamFor!ubyte([1, 2, 3, 4, 5]));
+    StreamResult result1 = r1.readBody(sOut, false);
+    assert(result1.hasCount);
+    assert(result1.count == 5);
+    assert(sOut.toArray() == [1, 2, 3, 4, 5]);
+    sOut.reset();
+
+    // If content length is missing, and we don't allow infinite read, don't read anything.
+    auto r2 = makeSampleRequest(["test": ["blah"]], arrayInputStreamFor!ubyte([1, 2, 3]));
+    StreamResult result2 = r2.readBody(sOut, false);
+    assert(result2.hasCount);
+    assert(result2.count == 0);
+    assert(sOut.toArray() == []);
+    sOut.reset();
+
+    // If content length is provided but is smaller than actual data, only read up to content length.
+    auto r3 = makeSampleRequest(["Content-Length": ["3"]], arrayInputStreamFor!ubyte([1, 2, 3, 4, 5]));
+    StreamResult result3 = r3.readBody(sOut, false);
+    assert(result3.hasCount);
+    assert(result3.count == 3);
+    assert(sOut.toArray() == [1, 2, 3]);
+    sOut.reset();
+
+    // If content length is provided but larger than actual data, a stream error should be returned.
+    auto r4 = makeSampleRequest(["Content-Length": ["8"]], arrayInputStreamFor!ubyte([1, 2, 3, 4, 5]));
+    StreamResult result4 = r4.readBody(sOut, false);
+    assert(result4.hasError);
+    assert(result4.error.code == 1);
+    assert(sOut.toArray().length == 5); // We should have read as much as we can from the request.
+    sOut.reset();
+
+    // If content length is not provided and we allow infinite read, read all body data.
+    auto r5 = makeSampleRequest(["test": ["blah"]], arrayInputStreamFor!ubyte([1, 2, 3, 4, 5]));
+    StreamResult result5 = r5.readBody(sOut, true);
+    assert(result5.hasCount);
+    assert(result5.count == 5);
+    assert(sOut.toArray() == [1, 2, 3, 4, 5]);
+    sOut.reset();
+
+    // If content length is provided, and we allow infinite read, respect the declared content length and only read that many bytes.
+    auto r6 = makeSampleRequest(["Content-Length": ["3"]], arrayInputStreamFor!ubyte([1, 2, 3, 4, 5]));
+    StreamResult result6 = r6.readBody(sOut, true);
+    assert(result6.hasCount);
+    assert(result6.count == 3);
+    assert(sOut.toArray() == [1, 2, 3]);
+    sOut.reset();
+
+    // Chunked-encoded data test: Write some chunked-encoded data to a buffer, and check that we can read it.
+    auto chunkedTestBytesOut = byteArrayOutputStream();
+    auto chunkedTestChunkedStream = ChunkedEncodingOutputStream!(ArrayOutputStream!ubyte*)(&chunkedTestBytesOut);
+    chunkedTestChunkedStream.writeToStream([1, 2]);
+    chunkedTestChunkedStream.writeToStream([3, 4, 5]);
+    chunkedTestChunkedStream.writeToStream([6, 7, 8]);
+    chunkedTestChunkedStream.writeToStream([9, 10]);
+    chunkedTestChunkedStream.closeStream();
+    ubyte[] chunkedData = chunkedTestBytesOut.toArray();
+
+    auto r7 = makeSampleRequest(
+        ["Content-Length": ["10"], "Transfer-Encoding": ["chunked"]],
+        arrayInputStreamFor(chunkedData)
+    );
+    StreamResult result7 = r7.readBody(sOut, false);
+    assert(result7.hasCount);
+    assert(result7.count == 10);
+    assert(sOut.toArray() == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    sOut.reset();
 }
 
 /**
