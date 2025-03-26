@@ -8,8 +8,8 @@ module handy_http_primitives.address;
  * that the connection was assigned to.
  */
 struct IPv4InternetAddress {
-    const ubyte[4] bytes;
-    const ushort port;
+    ubyte[4] bytes;
+    ushort port;
 }
 
 /**
@@ -17,8 +17,8 @@ struct IPv4InternetAddress {
  * machine that the connection was assigned to.
  */
 struct IPv6InternetAddress {
-    const ubyte[16] bytes;
-    const ushort port;
+    ubyte[16] bytes;
+    ushort port;
 }
 
 /**
@@ -26,7 +26,7 @@ struct IPv6InternetAddress {
  * IO operations take place.
  */
 struct UnixSocketAddress {
-    const string path;
+    string path;
 }
 
 /// Defines the different possible address types, used by `ClientAddress`.
@@ -42,10 +42,10 @@ enum ClientAddressType {
  * request. Use `type` to determine which information is available.
  */
 struct ClientAddress {
-    const ClientAddressType type;
-    const IPv4InternetAddress ipv4InternetAddress;
-    const IPv6InternetAddress ipv6InternetAddress;
-    const UnixSocketAddress unixSocketAddress;
+    ClientAddressType type;
+    IPv4InternetAddress ipv4InternetAddress;
+    IPv6InternetAddress ipv6InternetAddress;
+    UnixSocketAddress unixSocketAddress;
 
     /**
      * Serializes this address in a human-readable string representation.
