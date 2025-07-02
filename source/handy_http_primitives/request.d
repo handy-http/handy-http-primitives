@@ -1,3 +1,7 @@
+/**
+ * Defines the request structure and associated types that are generally used
+ * when dealing with a client's HTTP request.
+ */
 module handy_http_primitives.request;
 
 import streams;

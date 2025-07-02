@@ -1,3 +1,7 @@
+/**
+ * Defines the HTTP response structure and associated types that are generally
+ * used when formulating a response to a client's request.
+ */
 module handy_http_primitives.response;
 
 import streams : OutputStream;
@@ -15,6 +19,40 @@ struct ServerHttpResponse {
     StringMultiValueMap headers;
     /// The stream to which the response body is written.
     OutputStream!ubyte outputStream;
+    
+    /**
+     * Writes an array of bytes to the response's output stream.
+     * Params:
+     *   bytes = The bytes to write.
+     *   contentType = The declared content type of the data, which is written
+     *                 as the "Content-Type" header.
+     */
+    void writeBodyBytes(ubyte[] bytes, string contentType = ContentTypes.APPLICATION_OCTET_STREAM) {
+        import std.conv : to;
+        headers.add("Content-Type", contentType);
+        headers.add("Content-Length", to!string(bytes.length));
+        // We trust that when we write to the output stream, the transport
+        // implementation will handle properly formatting the headers and other
+        // HTTP boilerplate response content prior to actually writing the body.
+        auto result = outputStream.writeToStream(bytes);
+        if (result.hasError) {
+            throw new Exception(
+                "Failed to write bytes to the response's output stream: " ~
+                cast(string) result.error.message
+            );
+        }
+    }
+
+    /**
+     * Writes a string of content to the response's output stream.
+     * Params:
+     *   content = The content to write.
+     *   contentType = The declared content type of the data, which is written
+     *                 as the "Content-Type" header.
+     */
+    void writeBodyString(string content, string contentType = ContentTypes.TEXT_PLAIN) {
+        writeBodyBytes(cast(ubyte[]) content, contentType);
+    }
 }
 
 /** 
@@ -106,10 +144,19 @@ enum HttpStatus : StatusInfo {
 enum ContentTypes : string {
     APPLICATION_JSON                = "application/json",
     APPLICATION_XML                 = "application/xml",
+    APPLICATION_OCTET_STREAM        = "application/octet-stream",
+    APPLICATION_PDF                 = "application/pdf",
 
     TEXT_PLAIN                      = "text/plain",
     TEXT_HTML                       = "text/html",
-    TEXT_CSS                        = "text/css"
+    TEXT_CSS                        = "text/css",
+    TEXT_CSV                        = "text/csv",
+    TEXT_JAVASCRIPT                 = "text/javascript",
+    TEXT_MARKDOWN                   = "text/markdown",
+
+    IMAGE_JPEG                      = "image/jpeg",
+    IMAGE_PNG                       = "image/png",
+    IMAGE_SVG                       = "image/svg+xml"
 }
 
 /**

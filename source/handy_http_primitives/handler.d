@@ -1,3 +1,7 @@
+/**
+ * Defines the core request handler interface that's the starting point for
+ * all HTTP request processing.
+ */
 module handy_http_primitives.handler;
 
 import handy_http_primitives.request;
