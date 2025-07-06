@@ -29,6 +29,8 @@ struct ServerHttpRequest {
     const QueryParameter[] queryParams;
     /// The underlying stream used to read the body from the request.
     InputStream!ubyte inputStream;
+    /// Any additional data about this request that may be populated during handling.
+    Object[string] contextData;
 
     /**
      * Gets a header as the specified type, or returns the default value if the

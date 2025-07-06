@@ -22,6 +22,7 @@ struct ServerHttpRequestBuilder {
     string[][string] headers;
     QueryParameter[] queryParams;
     InputStream!ubyte inputStream = inputStreamObjectFor(NoOpInputStream!ubyte());
+    Object[string] contextData;
 
     ref withVersion(HttpVersion httpVersion) {
         this.httpVersion = httpVersion;
@@ -75,6 +76,11 @@ struct ServerHttpRequestBuilder {
         return withBody(cast(ubyte[]) bodyStr);
     }
 
+    ref withContextData(string key, Object obj) {
+        this.contextData[key] = obj;
+        return this;
+    }
+
     ServerHttpRequest build() {
         return ServerHttpRequest(
             httpVersion,
@@ -83,12 +89,20 @@ struct ServerHttpRequestBuilder {
             url,
             headers,
             queryParams,
-            inputStream
+            inputStream,
+            contextData
         );
     }
 }
 
 unittest {
+    class SampleContextData {
+        string name;
+        this(string name) {
+            this.name = name;
+        }
+    }
+
     ServerHttpRequest r1 = ServerHttpRequestBuilder()
         .withUrl("/test-url")
         .withVersion(HttpVersion.V2)
@@ -98,6 +112,7 @@ unittest {
         .withHeader("Content-Type", "text/plain")
         .withHeader("Content-Length", "12")
         .withQueryParam("idx", "42")
+        .withContextData("name", new SampleContextData("andrew"))
         .build();
     assert(r1.httpVersion == HttpVersion.V2);
     assert(r1.url == "/test-url");
@@ -109,6 +124,7 @@ unittest {
     assert(r1.getHeaderAs!string("Content-Type") == "text/plain");
     assert(r1.getHeaderAs!ulong("Content-Length") == 12);
     assert(r1.getParamAs!ulong("idx") == 42);
+    assert((cast(SampleContextData) r1.contextData["name"]).name == "andrew");
 }
 
 /**
