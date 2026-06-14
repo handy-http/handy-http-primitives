@@ -82,6 +82,45 @@ struct Optional(T) {
     bool opCast(B : bool)() const {
         return !this.isNull;
     }
+
+    // Optional support for ASDF serialization and deserialization.
+    // See here: https://code.dlang.org/packages/asdf
+    version (Have_asdf) {
+        import asdf;
+
+        /**
+         * Deserializes an optional value from raw ASDF data. This function
+         * is defined to allow for automatic deserialization of Optionals when
+         * parsing JSON or other data types.
+         * Params:
+         *   data = The data representing an optional value.
+         * Returns: An exception if one is thrown.
+         */
+        SerdeException deserializeFromAsdf(Asdf data) {
+            if (data == null) {
+                this.isNull = true;
+                this.value = T.init;
+            } else {
+                this.isNull = false;
+                this.value = deserialize!T(data);
+            }
+            return null;
+        }
+
+        /**
+         * Serializes an optional value to allow for the automatic serialization
+         * of Optionals when writing JSON or other data types.
+         * Params:
+         *   serializer = The serializer to use (provided by ASDF).
+         */
+        void serialize(S)(ref S serializer) {
+            if (this.isNull) {
+                serializer.putValue(null);
+            } else {
+                serializer.putValue(this.value);
+            }
+        }
+    }
 }
 
 /**
@@ -105,4 +144,40 @@ unittest {
     Optional!int mapped = s.mapIfPresent!(str => 1);
     assert(!mapped.isNull);
     assert(mapped.value == 1);
+
+    // Additional tests if the ASDF library is present:
+    version (Have_asdf) {
+        import asdf;
+
+        assert(deserialize!(Optional!string)(`null`).isNull);
+        assert(!deserialize!(Optional!bool)(`true`).isNull);
+        assert(deserialize!(Optional!bool)(`true`).value == true);
+
+        struct Sd {
+            int x;
+            int y;
+        }
+
+        struct S {
+            Optional!bool a;
+            Optional!string b;
+            Optional!float c;
+            Optional!Sd d;
+        }
+
+        string json = `{
+            "a": true,
+            "b": "hello world!",
+            "c": "3.14",
+            "d": {
+                "x": 42,
+                "y": 67
+            }
+        }`;
+        S sa = deserialize!S(json);
+        assert(sa.a && sa.a.value == true);
+        assert(sa.b && sa.b.value == "hello world!");
+        assert(sa.c && sa.c.value == 3.14f);
+        assert(sa.d && sa.d.value == Sd(42, 67));
+    }
 }
