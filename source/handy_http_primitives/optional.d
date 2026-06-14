@@ -88,36 +88,40 @@ struct Optional(T) {
     version (Have_asdf) {
         import asdf;
 
-        /**
-         * Deserializes an optional value from raw ASDF data. This function
-         * is defined to allow for automatic deserialization of Optionals when
-         * parsing JSON or other data types.
-         * Params:
-         *   data = The data representing an optional value.
-         * Returns: An exception if one is thrown.
-         */
-        SerdeException deserializeFromAsdf(Asdf data) {
-            if (data == null) {
-                this.isNull = true;
-                this.value = T.init;
-            } else {
-                this.isNull = false;
-                this.value = deserialize!T(data);
+        static if (
+            __traits(compiles, deserialize!T(Asdf.init))
+        ) {
+            /**
+            * Deserializes an optional value from raw ASDF data. This function
+            * is defined to allow for automatic deserialization of Optionals when
+            * parsing JSON or other data types.
+            * Params:
+            *   data = The data representing an optional value.
+            * Returns: An exception if one is thrown.
+            */
+            SerdeException deserializeFromAsdf(Asdf data) {
+                if (data == null) {
+                    this.isNull = true;
+                    this.value = T.init;
+                } else {
+                    this.isNull = false;
+                    this.value = deserialize!T(data);
+                }
+                return null;
             }
-            return null;
-        }
 
-        /**
-         * Serializes an optional value to allow for the automatic serialization
-         * of Optionals when writing JSON or other data types.
-         * Params:
-         *   serializer = The serializer to use (provided by ASDF).
-         */
-        void serialize(S)(ref S serializer) {
-            if (this.isNull) {
-                serializer.putValue(null);
-            } else {
-                serializer.putValue(this.value);
+            /**
+            * Serializes an optional value to allow for the automatic serialization
+            * of Optionals when writing JSON or other data types.
+            * Params:
+            *   serializer = The serializer to use (provided by ASDF).
+            */
+            void serialize(S)(ref S serializer) {
+                if (this.isNull) {
+                    serializer.putValue(null);
+                } else {
+                    serializer.putValue(this.value);
+                }
             }
         }
     }
