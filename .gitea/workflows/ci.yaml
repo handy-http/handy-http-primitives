@@ -17,3 +17,15 @@ jobs:
           compiler: ldc-latest
       - name: Build and Test
         run: dub -q test
+  build-and-test-with-asdf-library:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup DLang
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc-latest
+      - name: Add ASDF Library Dependencies
+        run: dub add asdf
+      - name: Build and Test
+        run: dub -q test
