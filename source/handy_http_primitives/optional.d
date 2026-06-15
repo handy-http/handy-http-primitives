@@ -100,14 +100,21 @@ struct Optional(T) {
             * Returns: An exception if one is thrown.
             */
             SerdeException deserializeFromAsdf(Asdf data) {
-                if (data == null) {
-                    this.isNull = true;
-                    this.value = T.init;
+                static if (!__traits(compiles, {T t; t = T.init;})) {
+                    return new SerdeException(
+                        "Cannot deserialize Optional that contains immutable or otherwise unassignable value. " ~
+                        "Ensure that the following code compiles: T t; t = T.init; for the given type T."
+                    );
                 } else {
-                    this.isNull = false;
-                    this.value = deserialize!T(data);
+                    if (data == null) {
+                        this.isNull = true;
+                        this.value = T.init;
+                    } else {
+                        this.isNull = false;
+                        this.value = deserialize!T(data);
+                    }
+                    return null;
                 }
-                return null;
             }
 
             /**
@@ -183,5 +190,21 @@ unittest {
         assert(sa.b && sa.b.value == "hello world!");
         assert(sa.c && sa.c.value == 3.14f);
         assert(sa.d && sa.d.value == Sd(42, 67));
+
+        // Check that optionals containing immutable data aren't supported for serialization & deserialization:
+        struct Invalid {
+            immutable int x;
+        }
+        Optional!Invalid opt = Optional!(Invalid).of(Invalid(42));
+        static assert(!__traits(compiles, serializeToJson(opt)));
+        try {
+            deserialize!(Optional!(Invalid))(`{"x": 123}`);
+            assert(
+                false,
+                "Failed to ensure that an exception is thrown when attempting to deserialize an incompatible Optional."
+            );
+        } catch (SerdeException exc) {
+            // pass.
+        }
     }
 }
