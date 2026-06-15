@@ -127,7 +127,7 @@ struct Optional(T) {
                 if (this.isNull) {
                     serializer.putValue(null);
                 } else {
-                    serializer.putValue(this.value);
+                    serializeValue(serializer, this.value);
                 }
             }
         }
