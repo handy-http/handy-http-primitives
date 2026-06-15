@@ -123,7 +123,7 @@ struct Optional(T) {
             * Params:
             *   serializer = The serializer to use (provided by ASDF).
             */
-            void serialize(S)(ref S serializer) {
+            void serialize(S)(ref S serializer) const {
                 if (this.isNull) {
                     serializer.putValue(null);
                 } else {
