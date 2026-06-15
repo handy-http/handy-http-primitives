@@ -196,7 +196,7 @@ unittest {
             immutable int x;
         }
         Optional!Invalid opt = Optional!(Invalid).of(Invalid(42));
-        static assert(!__traits(compiles, serializeToJson(opt)));
+        static assert(__traits(compiles, serializeToJson(opt)));
         try {
             deserialize!(Optional!(Invalid))(`{"x": 123}`);
             assert(
