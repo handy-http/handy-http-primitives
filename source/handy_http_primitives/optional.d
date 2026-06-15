@@ -147,6 +147,18 @@ auto mapIfPresent(alias fn, T)(Optional!T opt) {
     return Optional!U.of(fn(opt.value));
 }
 
+/**
+ * Helper function to get an Optional value for an existing value. Due to D's
+ * type inference, you can simply write `auto opt = toOptional(x);` to avoid
+ * having to write out types when constructing optionals.
+ * Params:
+ *   t = The value to construct an optional from.
+ * Returns: The optional with the given value.
+ */
+Optional!T toOptional(T)(T t) {
+    return Optional!T.of(t);
+}
+
 unittest {
     Optional!string s = Optional!string.of("hello");
     assert(!s.isNull);
@@ -207,4 +219,12 @@ unittest {
             // pass.
         }
     }
+}
+
+// Tests for toOptional.
+unittest {
+    int x = 5;
+    auto optX = x.toOptional;
+    assert(!optX.isNull);
+    assert(optX.value == 5);
 }
